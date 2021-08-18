@@ -1,0 +1,8 @@
+{
+  "name": "rollup-plugin-auto-import",
+  "version": "0.0.1",
+  "description": "you can use utils or ui component direct, this tool will import them underground",
+  "main": "index.js",
+  "author": "FoxDaxian",
+  "license": "MIT"
+}
