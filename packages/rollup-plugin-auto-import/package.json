@@ -1,8 +1,29 @@
 {
-  "name": "rollup-plugin-auto-import",
-  "version": "0.0.1",
-  "description": "you can use utils or ui component direct, this tool will import them underground",
-  "main": "index.js",
-  "author": "FoxDaxian",
-  "license": "MIT"
+    "name": "rollup-plugin-auto-import",
+    "version": "0.0.1",
+    "description": "you can use utils or npm package direct, this tool will import them underground",
+    "main": "dist/index.js",
+    "module": "dist/index.es.js",
+    "author": "FoxDaxian",
+    "license": "MIT",
+    "dependencies": {
+        "@rollup/pluginutils": "^4.1.1",
+        "chokidar": "^3.5.2",
+        "estree-walker": "2.0.2",
+        "magic-string": "^0.25.7"
+    },
+    "devDependencies": {
+        "@rollup/plugin-node-resolve": "^13.0.4",
+        "@rollup/plugin-typescript": "^8.2.5",
+        "@types/node": "^16.7.2",
+        "tslib": "^2.3.1"
+    },
+    "peerDependencies": {
+        "tslib": "*",
+        "typescript": "^4.4.2"
+    },
+    "scripts": {
+        "build": "rollup --config rollup.config.ts --configPlugin typescript",
+        "dev": "rollup --config rollup.config.ts --configPlugin typescript -w"
+    }
 }
