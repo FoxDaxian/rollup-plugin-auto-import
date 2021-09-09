@@ -6,6 +6,12 @@
     "module": "dist/index.es.js",
     "author": "FoxDaxian",
     "license": "MIT",
+    "files": [
+        "dist",
+        "index.d.ts",
+        "package.json",
+        "README.md"
+    ],
     "dependencies": {
         "@rollup/pluginutils": "^4.1.1",
         "chokidar": "^3.5.2",
