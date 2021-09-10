@@ -1,31 +1,36 @@
-import { createFilter, FilterPattern } from '@rollup/pluginutils';
-import { FileLoader, defaultFlag } from './fileLoader';
-import { relative, dirname } from 'path';
-import { walk } from 'estree-walker';
-import MagicString from 'magic-string';
+import { createFilter } from '@rollup/pluginutils';
+import { FileLoader } from './fileLoader';
 import chokidar from 'chokidar';
 import { Options } from '../';
-
-interface Node {
-    name: string;
-    type: string;
-}
+import _transform from './transform';
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export
 // 这里是export的相关语法
 // 比如as语法还不支持
 
+const defualtExclude = [/node_modules/, /\.css\b/];
+const defaultPresetDir = 'auto-import';
+
 export default function (options: Options) {
     options = options || {};
-    const presetDir = options.presetDir || 'auto-import';
+    const presetDir = options.presetDir || defaultPresetDir;
     const inject = options.inject || {};
-    const filter = createFilter(options.include, options.exclude);
+    const exclude = options.exclude ? options.exclude instanceof Array ? [...defualtExclude, ...options.exclude] : [...defualtExclude, options.exclude] : defualtExclude;
+    const filter = createFilter(options.include, exclude);
     const fileLoader = new FileLoader(presetDir, inject);
     fileLoader.generateDtsFromPreset();
     dtsWatch(presetDir, fileLoader);
+    let watched = false;
 
     return {
         name: 'auto-import-plugin',
+        buildStart() {
+            if (!watched) {
+                // @ts-ignore
+                this.addWatchFile(presetDir); // cause page reload, need to resolved   
+                watched = true;
+            }
+        },
         transform(code: string, id: string) {
             if (!filter(id)) {
                 return null;
@@ -40,63 +45,6 @@ export default function (options: Options) {
             }
             return _transform.call(this, code, id, fileLoader);
         },
-    };
-}
-
-function _transform(code: string, id: string, fileLoader: FileLoader) {
-    const importStatements = new Map<string, string[]>();
-
-    // @ts-ignore
-    const ast = this.parse(code);
-    walk(ast, {
-        enter(node, parent, prop, index) {
-            if (node.type === 'Identifier') {
-                const name = (node as Node).name;
-                if (fileLoader.importCtx.has(name)) {
-                    const fullpath = fileLoader.importCtx.get(name)!;
-                    importStatements.set(fullpath, [
-                        ...(importStatements.get(fullpath) || []),
-                        name,
-                    ]);
-                }
-                if (fileLoader.importCtx.has(defaultFlag + name)) {
-                    const fullpath = fileLoader.importCtx.get(
-                        defaultFlag + name
-                    )!;
-                    importStatements.set(fullpath, [
-                        ...(importStatements.get(fullpath) || []),
-                        defaultFlag + name,
-                    ]);
-                }
-            }
-        },
-    });
-    let res = '';
-    for (const [fullpath, modules] of importStatements) {
-        const source = relative(dirname(id), fullpath);
-        const importDefaultName = [];
-        const importSpecifiersName = [];
-        for (const module of modules) {
-            if (module.startsWith(defaultFlag)) {
-                importDefaultName.push(module.replace(defaultFlag, ''));
-            } else {
-                importSpecifiersName.push(module);
-            }
-        }
-        if (importSpecifiersName.length) {
-            res += `import { ${importSpecifiersName.join(
-                ', '
-            )} } from '${source}';\n`;
-        }
-        if (importDefaultName.length) {
-            res += `import ${importDefaultName[0]} from '${source}';\n`;
-        }
-    }
-    const s = new MagicString(code);
-    s.prependLeft(0, res);
-    return {
-        code: s.toString(),
-        map: s.generateMap(),
     };
 }
 

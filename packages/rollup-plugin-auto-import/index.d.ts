@@ -8,5 +8,5 @@ export interface Options {
 }
 export default function (options?: Options): {
     name: string;
-    transform(code: string, id: string): void;
+    transform(code: string, id: string): { code: string; map: string } | null;
 };

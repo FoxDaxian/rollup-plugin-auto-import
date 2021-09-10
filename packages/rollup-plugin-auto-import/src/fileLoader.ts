@@ -111,7 +111,6 @@ export class FileLoader {
     ): void {
         let dts = '';
         resolvedFiles.forEach((resolvedFile) => {
-            // todo: 丢弃重复、冲突的声明？
             const _dts = this.replaceExport(resolvedFile);
             dts += this.getImportCtx({
                 dts: _dts,
@@ -122,7 +121,7 @@ export class FileLoader {
 
         dts += Array.from(packages)
             .map(([pkg, modules]) =>
-                modules
+                Array.from(new Set(modules))
                     .map((module) => {
                         this.importCtx.set(module, pkg);
                         this.ignoreFiles.add(new RegExp(`${pkg}${sep}`));
@@ -133,6 +132,10 @@ export class FileLoader {
             .join('');
 
         // TODO: 加缩进哈
+        // TODO: 三方库的types
+        // TODO: vue集成后，引入ref报错了, 加了include后解决了，也许不是最好的解决方案
+        // TODO: 修改auto-import目录，导致hot-reload支持有些慢，需要解决(最好)
+        // TODO: 构建时间问题
         dts = `declare global {\n${dts}}\nexport {}\n`;
         writeFileSync('auto-import.d.ts', dts, {
             encoding: 'utf-8',
@@ -164,8 +167,8 @@ export class FileLoader {
     }
 
     private replaceExport({ dts, filename }: ResolvedFileInfo) {
-        const declare = /declare\s/g;
-        const defaultName = '_default';
+        const declare = /\bdeclare\b\s/g;
+        const defaultName = /\b_default\b/;
         const exportSpecifier = /export (declare)/g;
         const exportDefault = /export default .+/;
         return dts

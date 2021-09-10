@@ -18,6 +18,7 @@ const specifier = "\u6211\u662F\u6700\u539F\u59CB\u7684";
 class ClassName {
     private test;
 }
+const innerRef: import("vue").Ref<number>;
 function fsy(): void;
 const ref: typeof import('vue')['ref']
 }
