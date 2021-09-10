@@ -1,11 +1,17 @@
 {
     "name": "rollup-plugin-auto-import",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "description": "you can use utils or npm package direct, this tool will import them underground",
     "main": "dist/index.js",
     "module": "dist/index.es.js",
     "author": "FoxDaxian",
     "license": "MIT",
+    "keywords": ["no import", "auto import", "rollup plugin"],
+    "homepage": "https://github.com/FoxDaxian/rollup-plugin-auto-import",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:FoxDaxian/rollup-plugin-auto-import.git"
+    },
     "files": [
         "dist",
         "index.d.ts",
