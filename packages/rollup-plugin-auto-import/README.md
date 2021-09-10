@@ -28,6 +28,7 @@ export default {
   plugins: [
     resolve(),
     autoImport({
+        exclude: [/\.less\b/], // !! exclude unnecessary file
         inject: {
             vue: ['ref'],
         },
