@@ -19,8 +19,12 @@ export default function (options: Options) {
     const filter = createFilter(options.include, exclude);
     const fileLoader = new FileLoader(presetDir, inject);
     fileLoader.generateDtsFromPreset();
-    dtsWatch(presetDir, fileLoader);
     let watched = false;
+    if (process.env.NODE_ENV !== 'production') {
+        watched = true;
+        dtsWatch(presetDir, fileLoader);
+    }
+    
 
     return {
         name: 'auto-import-plugin',

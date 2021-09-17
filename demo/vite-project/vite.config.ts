@@ -7,6 +7,7 @@ export default defineConfig({
     plugins: [
         vue(),
         autoImport({
+            include: [/\.js\b/, /\.ts\b/],
             exclude: [/\.less\b/],
             inject: {
                 vue: ['ref', 'computed'],
