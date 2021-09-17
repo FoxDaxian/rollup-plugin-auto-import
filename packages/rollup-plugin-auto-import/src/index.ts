@@ -19,9 +19,9 @@ export default function (options: Options) {
     const filter = createFilter(options.include, exclude);
     const fileLoader = new FileLoader(presetDir, inject);
     fileLoader.generateDtsFromPreset();
-    let watched = false;
+    let watched = true;
     if (process.env.NODE_ENV !== 'production') {
-        watched = true;
+        watched = false;
         dtsWatch(presetDir, fileLoader);
     }
     
