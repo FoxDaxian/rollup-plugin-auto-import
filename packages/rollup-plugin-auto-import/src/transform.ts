@@ -11,9 +11,9 @@ export default function (code: string, id: string, fileLoader: FileLoader) {
     // @ts-ignore
     const ast = this.parse(code);
     walk(ast, {
-        enter(node, parent, prop, index) {
+        enter(node: Node, parent: Node, prop, index) {
             if (node.type === 'Identifier') {
-                const name = (node as Node).name;
+                const name = node.name!;
                 switch (parent.type) {
                     case 'VariableDeclarator': // let const var
                     case 'FunctionDeclaration': // function async function
@@ -23,6 +23,18 @@ export default function (code: string, id: string, fileLoader: FileLoader) {
                         alreadyDeclaration.add(name);
                         break;
                     default:
+                        if (
+                            (parent.type === 'MemberExpression' &&
+                                parent.property === node) ||
+                            (parent.type === 'AssignmentExpression' &&
+                                parent.left === node) ||
+                            (parent.type === 'VariableDeclarator' &&
+                                parent.id === node) ||
+                            (parent.type === 'Property' && parent.key === node)
+                        ) {
+                            return;
+                        }
+
                         if (fileLoader.importCtx.has(name)) {
                             const fullpath = fileLoader.importCtx.get(name)!;
                             importStatements.set(fullpath, [
@@ -46,7 +58,9 @@ export default function (code: string, id: string, fileLoader: FileLoader) {
 
     let res = '';
     for (const [fullpath, modules] of importStatements) {
-        const source = fullpath.includes(sep) ? relative(dirname(id), fullpath) : fullpath;
+        const source = fullpath.includes(sep)
+            ? relative(dirname(id), fullpath)
+            : fullpath;
         const importDefaultName = new Set();
         const importSpecifiersName = new Set();
         for (const module of modules) {
