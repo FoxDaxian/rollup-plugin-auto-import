@@ -1,6 +1,7 @@
 import { writeFileSync, readdirSync, readFileSync } from 'fs';
 import { resolve, extname, sep } from 'path';
 import * as ts from 'typescript';
+import { CompilerHost } from 'typescript';
 import {
     ResolvedFileInfo,
     CreatedFiles,
@@ -8,17 +9,27 @@ import {
     Inject,
 } from './type/FileLoader';
 
+const tsOtions = {
+    allowJs: true,
+    declaration: true,
+    emitDeclarationOnly: true,
+};
 export const defaultFlag = '_export_default_';
-
+const dtsCache: Map<string, string> = new Map();
 export class FileLoader {
+    host: CompilerHost = ts.createCompilerHost(tsOtions);
     importCtx: Map<string, string> = new Map();
     ignoreFiles: Set<string | RegExp> = new Set();
     private hasTs: boolean = !!require.resolve('typescript');
-    constructor(private presetDir: string, private inject: Inject) {}
+    constructor(private presetDir: string, private inject: Inject) {
+        this.host.writeFile = (fileName, contents) => {
+            dtsCache.set(fileName.replace(/\.d(\.ts)$/, '$1'), contents);
+        };
+    }
 
-    generateDtsFromPreset() {
-        const resolvedFiles = this.fetchDts(this.presetDir);
-        const packages = this.fetchPackages(this.inject);
+    async generateDtsFromPreset(changedFile?: string) {
+        const resolvedFiles = await this.fetchDts(this.presetDir, changedFile);
+        const packages = await this.fetchPackages(this.inject);
         if (this.hasTs) {
             this.writeDts(resolvedFiles, packages);
         } else {
@@ -28,12 +39,12 @@ export class FileLoader {
         }
     }
 
-    private fetchPackages(inject: Inject): Packages {
+    private async fetchPackages(inject: Inject): Promise<Packages> {
         const pkgMap: Packages = new Map();
 
         const injectArr = Object.entries(inject);
         const len = injectArr.length;
-        dfs(0);
+
         function dfs(index: number) {
             try {
                 const pkg = injectArr[index][0];
@@ -50,7 +61,7 @@ export class FileLoader {
                     }
                 }
             } catch (e) {
-                console.error(e.message);
+                console.error((e as { message: string }).message);
             } finally {
                 if (index < len - 1) {
                     dfs(index + 1);
@@ -58,51 +69,57 @@ export class FileLoader {
             }
         }
 
-        for (let i = 0; i < len; ++i) {}
-        return pkgMap;
+        return new Promise((res) => {
+            dfs(0);
+            process.nextTick(() => {
+                res(pkgMap);
+            });
+        });
     }
 
-    private fetchDts(presetDir: string): ResolvedFileInfo[] {
-        const files: string[] = readdirSync(presetDir);
-        const resolvedFiles: ResolvedFileInfo[] = [];
-        let i = -1;
+    private async fetchDts(
+        presetDir: string,
+        changedFile?: string
+    ): Promise<ResolvedFileInfo[]> {
+        let files: string[] = readdirSync(presetDir);
+        const resolvedFiles: Map<string, ResolvedFileInfo> = new Map();
         files.forEach((file) => {
             const filename = file.replace(extname(file), '');
             const fullpath = resolve(presetDir, file);
             this.ignoreFiles.add(fullpath);
-            resolvedFiles.push({
+            resolvedFiles.set(fullpath, {
                 fullpath,
                 filename,
             });
         });
-        for (const [fullpath, dts] of this.generateDts(
-            resolvedFiles.map((resolvedFile) => resolvedFile.fullpath),
-            {
-                allowJs: true,
-                declaration: true,
-                emitDeclarationOnly: true,
-            }
-        )) {
-            resolvedFiles[++i].dts = dts;
+        let resolvedFilesArr = Object.values(Object.fromEntries(resolvedFiles));
+        if (changedFile) {
+            resolvedFilesArr = resolvedFilesArr.filter((_) =>
+                _.fullpath.endsWith(changedFile)
+            );
         }
-        return resolvedFiles;
+        await this.generateDts(
+            resolvedFilesArr.map((resolvedFile) => resolvedFile.fullpath)
+        );
+        for (const [fullpath, dts] of Object.entries(
+            Object.fromEntries(dtsCache)
+        )) {
+            resolvedFiles.set(
+                fullpath,
+                Object.assign(resolvedFiles.get(fullpath), { dts })
+            );
+        }
+        return Object.values(Object.fromEntries(resolvedFiles));
     }
 
-    private generateDts(
-        fileNames: string[],
-        options: ts.CompilerOptions
-    ): [string, string][] {
-        // Create a Program with an in-memory emit
-        const createdFiles: CreatedFiles = {};
-        const host = ts.createCompilerHost(options);
-        host.writeFile = (fileName, contents) =>
-            (createdFiles[fileName] = contents);
-
-        // Prepare and emit the d.ts files
-        const program = ts.createProgram(fileNames, options, host);
-        program.emit();
-
-        return Object.entries(createdFiles);
+    private async generateDts(fileNames: string[]): Promise<void> {
+        const program = ts.createProgram(fileNames, tsOtions, this.host);
+        return new Promise((res) => {
+            process.nextTick(() => {
+                program.emit();
+                res();
+            });
+        });
     }
 
     private writeDts(
@@ -131,11 +148,6 @@ export class FileLoader {
             )
             .join('');
 
-        // TODO: 加缩进哈
-        // TODO: 三方库的types
-        // TODO: vue集成后，引入ref报错了, 加了include后解决了，也许不是最好的解决方案
-        // TODO: 修改auto-import目录，导致hot-reload支持有些慢，需要解决(最好)
-        // TODO: 构建时间问题
         dts = `declare global {\n${dts}}\nexport {}\n`;
         writeFileSync('auto-import.d.ts', dts, {
             encoding: 'utf-8',
