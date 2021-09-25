@@ -1151,6 +1151,24 @@ resolve@^1.15.1, resolve@^1.17.0, resolve@^1.19.0, resolve@^1.20.0:
     is-core-module "^2.2.0"
     path-parse "^1.0.6"
 
+rollup-plugin-auto-import@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.npmjs.org/rollup-plugin-auto-import/-/rollup-plugin-auto-import-0.0.1.tgz#8d648eebea6a1216aff2ae518d110c2f5798412f"
+  integrity sha512-Yz+QbryscTjCCsOJqO8nh9C8UdeRvJgyac/aeViVbywqJk0ZA++xdnb1rUr+B00s4QcBpyde05JO8eF370mUSw==
+  dependencies:
+    "@rollup/pluginutils" "^4.1.1"
+    chokidar "^3.5.2"
+    estree-walker "2.0.2"
+    magic-string "^0.25.7"
+
+rollup-plugin-auto-import@^0.0.7:
+  version "0.0.8"
+  dependencies:
+    "@rollup/pluginutils" "^4.1.1"
+    chokidar "^3.5.2"
+    estree-walker "2.0.2"
+    magic-string "^0.25.7"
+
 rollup@^2.38.5, rollup@^2.56.3:
   version "2.56.3"
   resolved "https://registry.npmjs.org/rollup/-/rollup-2.56.3.tgz#b63edadd9851b0d618a6d0e6af8201955a77aeff"
