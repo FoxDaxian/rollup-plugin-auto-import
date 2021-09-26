@@ -1,5 +1,7 @@
 export interface Node {
     name?: string;
+    init?: string;
+    right?: string;
     type?: string;
     object?: Node;
     callee?: Node;

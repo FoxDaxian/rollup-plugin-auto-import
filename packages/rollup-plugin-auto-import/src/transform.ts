@@ -15,42 +15,56 @@ export default function (code: string, id: string, fileLoader: FileLoader) {
             if (node.type === 'Identifier') {
                 const name = node.name!;
                 switch (parent.type) {
-                    case 'VariableDeclarator': // let const var
                     case 'FunctionDeclaration': // function async function
                     case 'ImportNamespaceSpecifier': // import * as test from 'vue';
                     case 'ImportDefaultSpecifier': // import vue from 'vue';
                     case 'ImportSpecifier': // import { ref, computed } from 'vue';
                         alreadyDeclaration.add(name);
                         break;
-                    default:
-                        if (
-                            (parent.type === 'MemberExpression' &&
-                                parent.property === node) ||
-                            (parent.type === 'AssignmentExpression' &&
-                                parent.left === node) ||
-                            (parent.type === 'VariableDeclarator' &&
-                                parent.id === node) ||
-                            (parent.type === 'Property' && parent.key === node)
-                        ) {
-                            return;
-                        }
-
-                        if (fileLoader.importCtx.has(name)) {
-                            const fullpath = fileLoader.importCtx.get(name)!;
-                            importStatements.set(fullpath, [
-                                ...(importStatements.get(fullpath) || []),
+                    case 'VariableDeclarator': // let const var
+                        if (parent.init === node) {
+                            add2ImportStatements(
                                 name,
-                            ]);
+                                fileLoader,
+                                importStatements
+                            );
+                        } else if (parent.id === node) {
+                            alreadyDeclaration.add(name);
                         }
-                        if (fileLoader.importCtx.has(defaultFlag + name)) {
-                            const fullpath = fileLoader.importCtx.get(
-                                defaultFlag + name
-                            )!;
-                            importStatements.set(fullpath, [
-                                ...(importStatements.get(fullpath) || []),
-                                defaultFlag + name,
-                            ]);
+                        break;
+                    case 'MemberExpression':
+                        if (parent.object === node) {
+                            add2ImportStatements(
+                                name,
+                                fileLoader,
+                                importStatements
+                            );
                         }
+                        break;
+                    case 'AssignmentExpression':
+                        if (parent.right === node) {
+                            add2ImportStatements(
+                                name,
+                                fileLoader,
+                                importStatements
+                            );
+                        }
+                        break;
+                    case 'Property':
+                        if (parent.value === node) {
+                            add2ImportStatements(
+                                name,
+                                fileLoader,
+                                importStatements
+                            );
+                        }
+                        break;
+                    default:
+                        add2ImportStatements(
+                            name,
+                            fileLoader,
+                            importStatements
+                        );
                 }
             }
         },
@@ -90,4 +104,25 @@ export default function (code: string, id: string, fileLoader: FileLoader) {
         code: s.toString(),
         map: s.generateMap(),
     };
+}
+
+function add2ImportStatements(
+    name: string,
+    fileLoader: FileLoader,
+    importStatements: Map<string, string[]>
+) {
+    if (fileLoader.importCtx.has(name)) {
+        const fullpath = fileLoader.importCtx.get(name)!;
+        importStatements.set(fullpath, [
+            ...(importStatements.get(fullpath) || []),
+            name,
+        ]);
+    }
+    if (fileLoader.importCtx.has(defaultFlag + name)) {
+        const fullpath = fileLoader.importCtx.get(defaultFlag + name)!;
+        importStatements.set(fullpath, [
+            ...(importStatements.get(fullpath) || []),
+            defaultFlag + name,
+        ]);
+    }
 }
