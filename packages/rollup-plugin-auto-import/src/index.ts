@@ -53,14 +53,13 @@ export default function (options: Options) {
 }
 
 function dtsWatch(presetDir: string, fileLoader: FileLoader) {
-    let timer: NodeJS.Timeout;
-    chokidar.watch(presetDir).on('all', (event, path) => {
+    chokidar.watch(presetDir, {
+        ignoreInitial: true,
+        awaitWriteFinish: true,
+    }).on('all', (event, path) => {
         if (event === 'addDir') {
             return;
         }
-        timer && clearTimeout(timer);
-        timer = setTimeout(function () {
-            fileLoader.generateDtsFromPreset(path);
-        }, 50);
+        fileLoader.generateDtsFromPreset(path);
     });
 }

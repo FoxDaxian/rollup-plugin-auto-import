@@ -1,3 +1,3 @@
-export default (age: number): string => {
-    return `I'm ${age} year old==2=`
+export default (age: number) => {
+    return '123';
 }

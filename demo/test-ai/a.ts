@@ -9,7 +9,7 @@ console.log(defaultfn(12));
 console.log(defaultObj.name);
 
 const count = ref<number>(1);
-const count2 = ref(33);
+const count2 = ref(323);
 
 console.log(count.value, count2.value);
 console.log(innerRef.value, '==xxxxxxxx--');

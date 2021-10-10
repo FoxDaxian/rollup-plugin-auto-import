@@ -4,7 +4,7 @@ const defaultObj: {
     fn(): void;
 };
 
-let variable: string;
+let variable: boolean;
 enum Directions {
     Up = 0,
     Down = 1,

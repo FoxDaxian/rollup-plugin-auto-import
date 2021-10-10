@@ -1,5 +1,5 @@
-let variable: string;
-variable = 'var';
+let variable: boolean;
+variable = false;
 
 export enum Directions {
     Up,

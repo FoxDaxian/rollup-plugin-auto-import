@@ -1,4 +1,4 @@
-import { writeFileSync, readdirSync, readFileSync } from 'fs';
+import { writeFile, readdirSync } from 'fs';
 import { resolve, extname, sep } from 'path';
 import * as ts from 'typescript';
 import { CompilerHost } from 'typescript';
@@ -9,10 +9,13 @@ import {
     Inject,
 } from './type/FileLoader';
 
+// https://github.com/microsoft/TypeScript/issues/21221#issuecomment-358222952
 const tsOtions = {
-    allowJs: true,
+    allowJs: false,
     declaration: true,
     emitDeclarationOnly: true,
+    strictPropertyInitialization: false,
+    skipLibCheck: true
 };
 export const defaultFlag = '_export_default_';
 const dtsCache: Map<string, string> = new Map();
@@ -116,7 +119,7 @@ export class FileLoader {
         const program = ts.createProgram(fileNames, tsOtions, this.host);
         return new Promise((res) => {
             process.nextTick(() => {
-                program.emit();
+                program.emit(undefined, undefined, undefined, false);
                 res();
             });
         });
@@ -149,8 +152,10 @@ export class FileLoader {
             .join('');
 
         dts = `declare global {\n${dts}}\nexport {}\n`;
-        writeFileSync('auto-import.d.ts', dts, {
+        writeFile('auto-import.d.ts', dts, {
             encoding: 'utf-8',
+        }, (err) => {
+            if (err) throw err;
         });
     }
 
