@@ -73,7 +73,9 @@ export class FileLoader {
         }
 
         return new Promise((res) => {
-            dfs(0);
+            if (len > 0) {
+                dfs(0);
+            }
             process.nextTick(() => {
                 res(pkgMap);
             });

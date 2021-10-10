@@ -3,13 +3,20 @@ import { relative, dirname, sep } from 'path';
 import { walk } from 'estree-walker';
 import MagicString from 'magic-string';
 import { FileLoader, defaultFlag } from './fileLoader';
+import * as acorn from 'acorn';
 
-export default function (code: string, id: string, fileLoader: FileLoader) {
+export default function (code: string, id: string, fileLoader: FileLoader, parse?: typeof acorn.Parser) {
     const importStatements = new Map<string, string[]>();
     const alreadyDeclaration = new Set<string>();
 
-    // @ts-ignore
-    const ast = this.parse(code);
+    let ast: acorn.Node;
+    // for jest
+    if (parse) {
+        ast = parse.parse(code);    
+    } else {
+        // @ts-ignore
+        ast = this.parse(code);    
+    }
     walk(ast, {
         enter(node: Node, parent: Node, prop, index) {
             if (node.type === 'Identifier') {
