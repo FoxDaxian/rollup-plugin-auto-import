@@ -2,12 +2,7 @@ import { writeFile, readdirSync } from 'fs';
 import { resolve, extname, sep } from 'path';
 import * as ts from 'typescript';
 import { CompilerHost } from 'typescript';
-import {
-    ResolvedFileInfo,
-    CreatedFiles,
-    Packages,
-    Inject,
-} from './type/FileLoader';
+import { ResolvedFileInfo, Packages, Inject } from './type/FileLoader';
 
 // https://github.com/microsoft/TypeScript/issues/21221#issuecomment-358222952
 const tsOtions = {
@@ -15,10 +10,12 @@ const tsOtions = {
     declaration: true,
     emitDeclarationOnly: true,
     strictPropertyInitialization: false,
-    skipLibCheck: true
+    skipLibCheck: true,
 };
 export const defaultFlag = '_export_default_';
-const dtsCache: Map<string, string> = new Map();
+type Filepath = string;
+type Dts = string;
+const dtsCache: Map<Filepath, Dts> = new Map();
 export class FileLoader {
     host: CompilerHost = ts.createCompilerHost(tsOtions);
     importCtx: Map<string, string> = new Map();
@@ -30,7 +27,9 @@ export class FileLoader {
         };
     }
 
+    // arg changedFile: modify all if not set changedFile. otherwise modify changedFile specified
     async generateDtsFromPreset(changedFile?: string) {
+        // generate Dts content from specified folder
         const resolvedFiles = await this.fetchDts(this.presetDir, changedFile);
         const packages = await this.fetchPackages(this.inject);
         if (this.hasTs) {
@@ -133,7 +132,7 @@ export class FileLoader {
     ): void {
         let dts = '';
         resolvedFiles.forEach((resolvedFile) => {
-            const _dts = this.replaceExport(resolvedFile);
+            const _dts = this.removeUnnecessary(resolvedFile);
             dts += this.getImportCtx({
                 dts: _dts,
                 filename: resolvedFile.filename,
@@ -154,11 +153,16 @@ export class FileLoader {
             .join('');
 
         dts = `declare global {\n${dts}}\nexport {}\n`;
-        writeFile('auto-import.d.ts', dts, {
-            encoding: 'utf-8',
-        }, (err) => {
-            if (err) throw err;
-        });
+        writeFile(
+            'auto-import.d.ts',
+            dts,
+            {
+                encoding: 'utf-8',
+            },
+            (err) => {
+                if (err) throw err;
+            }
+        );
     }
 
     private getImportCtx({ dts, fullpath }: ResolvedFileInfo) {
@@ -171,12 +175,19 @@ export class FileLoader {
                 this.importCtx.has(res[2]) &&
                 fullpath !== this.importCtx.get(res[2])
             ) {
-                console.warn(
-                    `[rollup-plugin-auto-import]: Identifier: ${
+                console.log(
+                    `%c[rollup-plugin-auto-import]: Identifier: %c[${
                         res[2]
-                    } already exist, please check ${this.importCtx.get(
+                    }] %calready exist, please check %c${this.importCtx.get(
                         res[2]
-                    )} with ${fullpath}`
+                    )} %cwith %c${fullpath}! %cMaybe you need redeclare this variable`,
+                    'color: #92790A;',
+                    'color: #F26464;',
+                    'color: #92790A;',
+                    'color: #F26464;',
+                    'color: #92790A;',
+                    'color: #F26464;',
+                    'color: #92790A;'
                 );
                 continue;
             }
@@ -185,15 +196,22 @@ export class FileLoader {
         return dts?.replace(defaultFlag, '');
     }
 
-    private replaceExport({ dts, filename }: ResolvedFileInfo) {
+    private removeUnnecessary({ dts, filename }: ResolvedFileInfo) {
+        // remove export
         const declare = /\bdeclare\b\s/g;
         const defaultName = /\b_default\b/;
         const exportSpecifier = /export (declare)/g;
         const exportDefault = /export default .+/;
+        // remove import
+        // https://regexr.com/47jlq
+        const importStatement =
+            /import\s+?(?:(?:(?:[\w*\s{},]*)\s+from\s+?)|)(?:(?:".*?")|(?:'.*?'))[\s]*?(?:;|$|)/g;
+
         return dts
             ?.replace(exportDefault, '')
             .replace(exportSpecifier, '$1')
             .replace(defaultName, `${defaultFlag}${filename}`)
-            .replace(declare, '');
+            .replace(declare, '')
+            .replace(importStatement, '');
     }
 }
