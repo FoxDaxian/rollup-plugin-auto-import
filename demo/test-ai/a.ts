@@ -1,15 +1,3 @@
-import c from './c';
-console.log(c.name);
-
-console.log(fsy);
-
-console.log(defaultfn(12));
-
-
-console.log(defaultObj.name);
-
-const count = ref<number>(1);
-const count2 = ref(323);
-
-console.log(count.value, count2.value);
-console.log(innerRef.value, '==xxxxxxxx--');
+defaultObj.fsy()
+console.log(ed.fsy());
+console.log(123);

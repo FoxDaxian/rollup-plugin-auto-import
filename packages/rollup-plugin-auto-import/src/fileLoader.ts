@@ -1,8 +1,12 @@
+import * as chalk from 'chalk';
 import { writeFile, readdirSync } from 'fs';
 import { resolve, extname, sep } from 'path';
 import * as ts from 'typescript';
 import { CompilerHost } from 'typescript';
 import { ResolvedFileInfo, Packages, Inject } from './type/FileLoader';
+
+const info = chalk.default.hex('#92790A');
+const warning = chalk.default.hex('#F26464');
 
 // https://github.com/microsoft/TypeScript/issues/21221#issuecomment-358222952
 const tsOtions = {
@@ -170,24 +174,22 @@ export class FileLoader {
         const prefix = '(var|let|const|function|class|enum)\\s';
         const reg = new RegExp(`${prefix}(${variable})`, 'g');
         const result = dts!.matchAll(reg);
+
         for (const res of result) {
             if (
                 this.importCtx.has(res[2]) &&
                 fullpath !== this.importCtx.get(res[2])
             ) {
                 console.log(
-                    `%c[rollup-plugin-auto-import]: Identifier: %c[${
-                        res[2]
-                    }] %calready exist, please check %c${this.importCtx.get(
-                        res[2]
-                    )} %cwith %c${fullpath}! %cMaybe you need redeclare this variable`,
-                    'color: #92790A;',
-                    'color: #F26464;',
-                    'color: #92790A;',
-                    'color: #F26464;',
-                    'color: #92790A;',
-                    'color: #F26464;',
-                    'color: #92790A;'
+                    `${info(
+                        '[rollup-plugin-auto-import]: Identifier: '
+                    )}${warning(`[${res[2]}]`)}${info(
+                        ' already exist, please check '
+                    )}${warning(`${this.importCtx.get(res[2])}`)}${info(
+                        ' with '
+                    )}${warning(`${fullpath}! `)}${info(
+                        'Maybe you need rename this variable'
+                    )}`
                 );
                 continue;
             }
