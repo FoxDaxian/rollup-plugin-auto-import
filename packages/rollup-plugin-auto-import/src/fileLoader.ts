@@ -13,6 +13,7 @@ const tsOtions = {
     allowJs: false,
     declaration: true,
     emitDeclarationOnly: true,
+    incremental: true,
     strictPropertyInitialization: false,
     skipLibCheck: true,
 };
